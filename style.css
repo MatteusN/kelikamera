@@ -1,12 +1,24 @@
 .container {
+  
   display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */  
   gap: 20px;
 }
 
 .card {
   text-align: center;
+  
 }
 
 .card img {
-  width: 250px;
+  width: 30vw;
+  border-radius: 8%;
+}
+.alateksti {
+font-size: 2em;
+
+
+
 }
