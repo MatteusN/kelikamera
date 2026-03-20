@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kelikamera</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <img id="img1">
+    <p>Vaasaan</p>
+  </div>
+
+  <div class="card">
+    <img id="img2">
+    <p>Turkuun</p>
+  </div>
+
+  <div class="card">
+    <img id="img3">
+    <p>Tienpinta</p>
+  </div>
+</div>
+
+
+
+
+<script>
+const stationId = "C02551";
+
+// Tähän laitat ne cameraPanId:t URL:ista
+const panIds = [
+  "C0255101",
+  "C0255102",
+  "C0255109"
+];
+
+function loadCameras() {
+  fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`)
+    .then(res => res.json())
+    .then(data => {
+      const presets = data.properties.presets;
+
+      panIds.forEach((panId, index) => {
+        const cam = presets.find(p => p.id === panId);
+
+        if (cam) {
+          document.getElementById(`img${index + 1}`).src = cam.imageUrl;
+        }
+      });
+    })
+    .catch(err => console.log("Virhe:", err));
+}
+
+// Lataa heti
+loadCameras();
+
+// Päivitä 30 sek välein
+setInterval(loadCameras, 30000);
+</script>
+</body>
+</html>
