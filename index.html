@@ -67,79 +67,63 @@ body {
 const stationId = "C02551";
 const panIds = ["C0255101", "C0255102", "C0255109"];
 
-function getExifTime(url) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      
-      // Lue EXIF (yksinkertainen heuristic)
-      const timestamp = Date.now(); // Fallback
-      resolve(new Date(timestamp));
-    };
-    img.src = url + '?t=' + Date.now();
-  });
+async function getImageTimestamp(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    const lastModified = response.headers.get('last-modified');
+    if (lastModified) {
+      return new Date(lastModified);
+    }
+  } catch (e) {}
+  
+  // Fallback: URL timestamp
+  const url = new URL(url);
+  const ts = url.searchParams.get('t') || Date.now();
+  return new Date(ts);
+}
+
+function formatAge(imgTime) {
+  const now = Date.now();
+  const diffMs = now - imgTime.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffSec = Math.floor((diffMs % 60000) / 1000);
+  return diffMin === 0 ? `${diffSec}s` : `${diffMin}min`;
 }
 
 async function loadCameras() {
   const response = await fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`);
   const data = await response.json();
   const presets = data.properties.presets;
-  
-  console.log("API data:", data.properties.dataUpdatedTime);
 
-  for (let index = 0; index < panIds.length; index++) {
-    const panId = panIds[index];
+  for (let i = 0; i < panIds.length; i++) {
+    const panId = panIds[i];
     const cam = presets.find(p => p.id === panId);
     if (!cam) continue;
 
-    const imgEl = document.getElementById(`img${index + 1}`);
-    const timeEl = document.getElementById(`time${index + 1}`);
+    const imgEl = document.getElementById(`img${i + 1}`);
+    const timeEl = document.getElementById(`time${i + 1}`);
 
-    // Lataa kuva
-    imgEl.src = cam.imageUrl + '?t=' + Date.now();
-    
-    // Lue EXIF / ota kuvan URL timestamp
-    const imgUrl = imgEl.src;
-    const url = new URL(imgUrl);
-    let photoTime;
-    
-    // Kokeile URL timestamp ensin
-    const urlTs = url.searchParams.get('updated') || url.searchParams.get('t');
-    if (urlTs) {
-      photoTime = new Date(parseInt(urlTs));
-    } else {
-      // Fallback: API aika + Suomen timezone
-      photoTime = new Date(data.properties.dataUpdatedTime);
-      photoTime.setHours(photoTime.getHours() + 2); // UTC → Suomi
-    }
+    // Uusi kuva
+    const imageUrl = cam.imageUrl + '?t=' + Date.now();
+    imgEl.src = imageUrl;
 
-    const now = Date.now();
-    const ageMs = now - photoTime.getTime();
-    const ageMin = Math.floor(ageMs / 60000);
-    const ageSec = Math.floor((ageMs % 60000) / 1000);
-    const ageStr = ageMin === 0 ? `${ageSec}s` : `${ageMin}min`;
+    // 🔥 KUVAN TOSIASIALLINEN AIKA (last-modified header)
+    const photoTime = await getImageTimestamp(imageUrl);
+    const age = formatAge(photoTime);
+    const timeStr = photoTime.toLocaleString('fi-FI');
 
-    const timeStr = photoTime.toLocaleString('fi-FI', { 
-      timeZone: 'Europe/Helsinki',
-      hour12: false 
-    });
+    timeEl.innerHTML = `📸 ${timeStr}<br><strong>${age} sitten</strong>`;
 
-    timeEl.innerHTML = `📸 ${timeStr}<br><strong>${ageStr} sitten</strong>`;
-    
     // Väri
-    timeEl.className = ageMin < 5 ? 'time fresh' : 
-                      ageMin < 15 ? 'time' : 'time old';
+    const diffMin = Math.floor((Date.now() - photoTime) / 60000);
+    timeEl.className = diffMin < 5 ? 'time fresh' : 
+                      diffMin < 15 ? 'time' : 'time old';
   }
 }
 
-loadCameras();
+// Lataa async
+loadCameras().catch(console.error);
 setInterval(loadCameras, 30000);
 </script>
-
 </body>
 </html>
