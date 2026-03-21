@@ -2,268 +2,144 @@
 <html lang="fi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kelikamerat - Reaaliaikaiset kuvat</title>
+<title>Kelikamerat</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
-  color: white;
+  font-family: Arial, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
   text-align: center;
   margin: 0;
-  padding: 20px;
-  min-height: 100vh;
 }
 
 h1 {
-  font-size: 2.5em;
-  margin-bottom: 10px;
-  background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-top: 20px;
 }
 
-.subtitle {
-  color: #888;
-  margin-bottom: 30px;
-  font-size: 1.1em;
-}
-
+/* Container */
 .container {
   display: flex;
   justify-content: center;
   gap: 25px;
+  margin-top: 30px;
   flex-wrap: wrap;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
+/* Card */
 .card {
-  background: rgba(30, 30, 30, 0.9);
-  padding: 20px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: all 0.3s ease;
-  min-width: 320px;
+  background: #161b22;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  transition: 0.2s;
 }
 
+/* Hover efekti */
 .card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+  transform: translateY(-5px);
+  border-color: #58a6ff;
 }
 
+/* Kuva */
 .card img {
-  width: 100%;
-  max-width: 350px;
-  height: 250px;
-  object-fit: cover;
-  border-radius: 15px;
-  transition: transform 0.3s ease;
+  width: 300px;
+  border-radius: 8px;
 }
 
-.card img:hover {
-  transform: scale(1.02);
-}
-
+/* Aika */
 .time {
-  margin-top: 15px;
-  font-size: 0.95em;
-  font-weight: 500;
-  line-height: 1.4;
+  margin-top: 10px;
+  font-size: 14px;
 }
 
+/* Status värit */
 .fresh {
-  color: #4caf50;
-  text-shadow: 0 0 10px #4caf50;
+  color: #3fb950;
 }
 
 .old {
-  color: #f44336;
-  text-shadow: 0 0 10px #f44336;
-}
-
-.loading {
-  color: #4facfe;
-  font-style: italic;
-}
-
-.error {
-  color: #ff6b6b;
-}
-
-.status-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0,0,0,0.9);
-  padding: 10px;
-  font-size: 0.9em;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  z-index: 1000;
-}
-
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  h1 {
-    font-size: 2em;
-  }
-  
-  .status-bar {
-    font-size: 0.8em;
-    padding: 8px;
-  }
+  color: #f85149;
 }
 </style>
 </head>
 
 <body>
-<div class="status-bar" id="statusBar">
-  Ladataan kelikameroita... ⏳
-</div>
 
-<h1>🛣️ Kelikamerat</h1>
-<p class="subtitle">Reaaliaikaiset kuvat asemalta <strong id="stationName">Ladataan...</strong></p>
+<h1>Kelikamerat</h1>
 
 <div class="container">
   <div class="card">
-    <img id="img1" alt="Kelikamera 1" style="background: #333;">
-    <div id="time1" class="time loading">Ladataan...</div>
+    <img id="img1">
+    <div id="time1" class="time"></div>
   </div>
 
   <div class="card">
-    <img id="img2" alt="Kelikamera 2" style="background: #333;">
-    <div id="time2" class="time loading">Ladataan...</div>
+    <img id="img2">
+    <div id="time2" class="time"></div>
   </div>
 
   <div class="card">
-    <img id="img3" alt="Kelikamera 3" style="background: #333;">
-    <div id="time3" class="time loading">Ladataan...</div>
+    <img id="img3">
+    <div id="time3" class="time"></div>
   </div>
 </div>
 
 <script>
+// Kamera ID
 const stationId = "C02551";
-const panIds = ["C0255101", "C0255102", "C0255109"];
 
-function updateStatus(message) {
-  document.getElementById('statusBar').textContent = message;
-}
+// cameraPanId:t (voit vaihtaa nämä)
+const panIds = [
+  "C0255109",
+  "C0255108",
+  "C0255107"
+];
 
 function loadCameras() {
-  updateStatus('Päivitetään kuvia... ⏳');
-  
   fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-      // Aseta aseman nimi (vain kerran)
-      const stationNameEl = document.getElementById('stationName');
-      if (!stationNameEl.textContent || stationNameEl.textContent === 'Ladataan...') {
-        stationNameEl.textContent = data.properties.name || 'Tuntematon asema';
-      }
-
-      const presets = data.properties.presets || [];
-      const now = new Date();
+      const presets = data.properties.presets;
 
       panIds.forEach((panId, index) => {
         const cam = presets.find(p => p.id === panId);
-        const img = document.getElementById(`img${index + 1}`);
-        const timeEl = document.getElementById(`time${index + 1}`);
 
-        if (cam && cam.imageUrl && cam.time) {
-          // KUVA
-          img.src = cam.imageUrl + `?t=${Date.now()}`;
-          img.onerror = () => { img.style.display = 'none'; };
+        if (cam) {
+          const img = document.getElementById(`img${index + 1}`);
+          const timeEl = document.getElementById(`time${index + 1}`);
 
-          // AIKA - TURVAPARSINTA
-          try {
-            let time = new Date(cam.time);
-            
-            // Korjaa Z-probleema
-            if (isNaN(time.getTime())) {
-              const fixedTimeStr = cam.time.replace('Z', '+00:00');
-              time = new Date(fixedTimeStr);
-            }
-            
-            // Lopullinen tarkistus
-            if (isNaN(time.getTime())) {
-              throw new Error('Invalid date');
-            }
+          // Kuva
+          img.src = cam.imageUrl;
 
-            const diffMs = now - time;
-            const diffMin = Math.max(0, Math.floor(diffMs / 60000)); // Ei negatiivisia
+          // Aika
+          const time = new Date(cam.time);
+          const now = new Date();
 
-            // SUOMALAINEN AIKA
-            const formatted = time.toLocaleString("fi-FI", {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
+          const diffMin = Math.floor((now - time) / 60000);
+          const formatted = time.toLocaleString("fi-FI");
 
-            timeEl.innerHTML = `🕐 ${formatted}<br><small>(${diffMin} min sitten)</small>`;
-            timeEl.className = `time ${diffMin < 10 ? 'fresh' : 'old'}`;
-            
-          } catch (e) {
-            console.error(`Aikavirhe ${panId}:`, cam.time, e);
-            timeEl.innerHTML = `Kuva: ${new Date(cam.time || 0).toLocaleString('fi-FI')}`;
-            timeEl.className = 'time error';
+          // Teksti
+          timeEl.innerText = `Päivitetty: ${formatted} (${diffMin} min sitten)`;
+
+          // Väri (live status)
+          if (diffMin < 10) {
+            timeEl.className = "time fresh";
+          } else {
+            timeEl.className = "time old";
           }
-
-        } else {
-          // Ei kameraa tai dataa
-          img.style.display = 'none';
-          timeEl.innerHTML = `Kamera ${panId} ei saatavilla ❌`;
-          timeEl.className = 'time error';
         }
       });
-
-      // Päivitys OK
-      updateStatus(`Viimeksi päivitetty: ${now.toLocaleTimeString('fi-FI')} ✅`);
-      
     })
-    .catch(err => {
-      console.error("Latausvirhe:", err);
-      updateStatus('Virhe ladattaessa! Tarkista nettiyhteys 😞');
-      
-      // Näytä virhe kameroille
-      panIds.forEach((_, index) => {
-        const timeEl = document.getElementById(`time${index + 1}`);
-        timeEl.innerHTML = 'Latausvirhe';
-        timeEl.className = 'time error';
-      });
-    });
+    .catch(err => console.log("Virhe:", err));
 }
 
-// === KÄYNNISTYS ===
+// Lataa heti
 loadCameras();
 
-// Päivitä 25s välein
-setInterval(loadCameras, 25000);
-
-// Päivitä kun sivu näkyy taas
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    loadCameras();
-  }
-});
+// Päivitä 30 sek välein
+setInterval(loadCameras, 30000);
 </script>
 
 </body>
