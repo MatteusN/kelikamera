@@ -1,26 +1,129 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Data</title>
+<meta charset="UTF-8">
+<title>Kelikamerat</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  text-align: center;
+  margin: 0;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: #161b22;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+}
+
+.card img {
+  width: 300px;
+  border-radius: 8px;
+}
+
+.time {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.fresh { color: #3fb950; }
+.old { color: #f85149; }
+</style>
 </head>
+
 <body>
-    <h1>Camera Data</h1>
-    <div id="camera-data">
-        <!-- Example camera data, replace with actual dynamic data or scripting logic -->
-        <div class="camera" id="camera-1">
-            <h2>Camera 1</h2>
-            <p>Last updated: <span class="individual-update-time">2026-03-21 11:00:00</span></p>
-        </div>
-        <div class="camera" id="camera-2">
-            <h2>Camera 2</h2>
-            <p>Last updated: <span class="individual-update-time">2026-03-21 11:01:00</span></p>
-        </div>
-        <div class="camera" id="camera-3">
-            <h2>Camera 3</h2>
-            <p>Last updated: <span class="individual-update-time">2026-03-21 11:02:00</span></p>
-        </div>
-    </div>
+
+<h1>Kelikamerat</h1>
+
+<div class="container">
+  <div class="card">
+    <img id="img1">
+    <div id="time1" class="time"></div>
+  </div>
+
+  <div class="card">
+    <img id="img2">
+    <div id="time2" class="time"></div>
+  </div>
+
+  <div class="card">
+    <img id="img3">
+    <div id="time3" class="time"></div>
+  </div>
+</div>
+
+<script>
+const stationId = "C02551";
+const panIds = ["C0255101", "C0255102", "C0255109"];
+
+function formatAge(updatedTime) {
+  const now = Date.now();
+  const diffMs = now - new Date(updatedTime).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffSec = Math.floor((diffMs % 60000) / 1000);
+  
+  if (diffMin === 0) return `${diffSec}s`;
+  if (diffMin < 60) return `${diffMin}min`;
+  return `${Math.floor(diffMin/60)}t`;
+}
+
+function loadCameras() {
+  fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`)
+    .then(res => res.json())
+    .then(data => {
+      const presets = data.properties.presets;
+      const dataUpdatedTime = data.properties.dataUpdatedTime; // ← TODENMUKAINEN aika!
+
+      console.log("dataUpdatedTime:", dataUpdatedTime);
+
+      panIds.forEach((panId, index) => {
+        const cam = presets.find(p => p.id === panId);
+        if (!cam) return;
+
+        const img = document.getElementById(`img${index + 1}`);
+        const timeEl = document.getElementById(`time${index + 1}`);
+
+        // KUVA + cache buster
+        img.src = cam.imageUrl + "?t=" + Date.now();
+
+        // 🔥 dataUpdatedTime = tarkka ottamisaika
+        const age = formatAge(dataUpdatedTime);
+        const timeStr = new Date(dataUpdatedTime).toLocaleString("fi-FI");
+        
+        timeEl.innerHTML = `📸 ${timeStr}<br><strong>${age} sitten</strong>`;
+
+        // Väri dataUpdatedTimen perusteella
+        const diffMin = Math.floor((Date.now() - new Date(dataUpdatedTime).getTime()) / 60000);
+        timeEl.className = diffMin < 5 ? "time fresh" : 
+                          diffMin < 15 ? "time" : "time old";
+      });
+    })
+    .catch(err => {
+      console.log("Virhe:", err);
+      // Fallback viesti
+      document.querySelectorAll('.time').forEach(el => {
+        el.innerHTML = '🔄 Ladataan...';
+        el.className = 'time';
+      });
+    });
+}
+
+// Lataa heti + 20s välein
+loadCameras();
+setInterval(loadCameras, 20000);
+</script>
+
 </body>
 </html>
