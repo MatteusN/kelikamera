@@ -114,11 +114,13 @@ function loadCameras() {
           img.src = cam.imageUrl;
 
           // Aika
-          const time = new Date(cam.time);
-          const now = new Date();
+          const time = new Date(cam.lastUpdated);
+const now = new Date();
 
-          const diffMin = Math.floor((now - time) / 60000);
-          const formatted = time.toLocaleString("fi-FI");
+const diffMin = Math.floor((now - time) / 60000);
+const formatted = time.toLocaleString("fi-FI");
+
+timeEl.innerText = `Päivitetty: ${formatted} (${diffMin} min sitten)`;
 
           // Teksti
           timeEl.innerText = `Päivitetty: ${formatted} (${diffMin} min sitten)`;
