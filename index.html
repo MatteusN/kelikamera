@@ -63,7 +63,7 @@ body {
     <div id="time3" class="time"></div>
   </div>
 </div>
-
+<!-- KORVAA VAIN <script> OSA tällä: -->
 <script>
 const stationId = "C02551";
 
@@ -73,51 +73,50 @@ const panIds = [
   "C0255109"
 ];
 
+function formatAge(diffMs) {
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffSec = Math.floor((diffMs % 60000) / 1000);
+  
+  if (diffMin < 1) {
+    return `${diffSec}s`;
+  }
+  if (diffMin < 60) {
+    return `${diffMin}min`;
+  }
+  const diffH = Math.floor(diffMin / 60);
+  return `${diffH}t`;
+}
+
 function loadCameras() {
   fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`)
     .then(res => res.json())
     .then(data => {
       const presets = data.properties.presets;
+      const now = Date.now(); // Yksi now kaikille
+      const updatedTime = new Date(data.properties.dataUpdatedTime).getTime();
 
       console.log("DATA:", presets); // debug
 
       panIds.forEach((panId, index) => {
-
         const cam = presets.find(p => p.id === panId);
-
         if (!cam) return;
 
         const img = document.getElementById(`img${index + 1}`);
         const timeEl = document.getElementById(`time${index + 1}`);
 
-        // KUVA
-        img.src = cam.imageUrl + "?t=" + Date.now();
+        // KUVA + cache buster
+        img.src = cam.imageUrl + "?t=" + now;
 
-        // 🔥 AIKA (VARMA fallback)
-        const updatedTime = data.properties.dataUpdatedTime;
+        // 🔥 TODELLINEN IKÄ + tarkka aika
+        const age = formatAge(now - updatedTime);
+        const timeStr = new Date(updatedTime).toLocaleString("fi-FI");
+        
+        timeEl.innerHTML = `📸 ${timeStr}<br><strong>${age} sitten</strong>`;
 
-const time = new Date(updatedTime);
-const now = new Date();
-
-const diffMin = Math.floor((now - time) / 60000);
-const formatted = time.toLocaleString("fi-FI");
-
-timeEl.innerText = `Päivitetty: ${formatted} (${diffMin} min sitten)`;
-
-// Väri
-if (diffMin < 10) {
-  timeEl.className = "time fresh";
-} else {
-  timeEl.className = "time old";
-}
-
-        // STATUS VÄRI
-        if (diffMin < 10) {
-          timeEl.className = "time fresh";
-        } else {
-          timeEl.className = "time old";
-        }
-
+        // Väri (parempi logiikka)
+        const diffMin = Math.floor((now - updatedTime) / 60000);
+        timeEl.className = diffMin < 5 ? "time fresh" : 
+                          diffMin < 15 ? "time" : "time old";
       });
     })
     .catch(err => console.log("Virhe:", err));
@@ -126,8 +125,8 @@ if (diffMin < 10) {
 // Lataa heti
 loadCameras();
 
-// Päivitä 30 sek välein
-setInterval(loadCameras, 30000);
+// Päivitä 20 sek välein (parempi reaaliaikaisuus)
+setInterval(loadCameras, 20000);
 </script>
 
 </body>
