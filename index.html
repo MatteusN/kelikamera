@@ -91,7 +91,7 @@ function loadCameras() {
         const timeEl = document.getElementById(`time${index + 1}`);
 
         // KUVA
-        img.src = cam.imageUrl;
+        img.src = cam.imageUrl + "?t=" + Date.now();
 
         // 🔥 AIKA (VARMA fallback)
         const updatedTime = data.properties.dataUpdatedTime;
