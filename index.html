@@ -1,11 +1,26 @@
-// Update the individual camera's timestamp using cam.dataUpdatedTime
-
-// Remove line 96
-
-// Update lines 111-112
-const camUpdatedTime = new Date(cam.dataUpdatedTime).getTime();
-displayAge(formatAge(camUpdatedTime));
-const localizedTime = new Date(camUpdatedTime).toLocaleString();
-
-// Update line 118
-const updatedTime = camUpdatedTime;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Data</title>
+</head>
+<body>
+    <h1>Camera Data</h1>
+    <div id="camera-data">
+        <!-- Example camera data, replace with actual dynamic data or scripting logic -->
+        <div class="camera" id="camera-1">
+            <h2>Camera 1</h2>
+            <p>Last updated: <span class="individual-update-time">2026-03-21 11:00:00</span></p>
+        </div>
+        <div class="camera" id="camera-2">
+            <h2>Camera 2</h2>
+            <p>Last updated: <span class="individual-update-time">2026-03-21 11:01:00</span></p>
+        </div>
+        <div class="camera" id="camera-3">
+            <h2>Camera 3</h2>
+            <p>Last updated: <span class="individual-update-time">2026-03-21 11:02:00</span></p>
+        </div>
+    </div>
+</body>
+</html>
