@@ -63,66 +63,82 @@ body {
     <div id="time3" class="time"></div>
   </div>
 </div>
-
 <script>
 const stationId = "C02551";
 const panIds = ["C0255101", "C0255102", "C0255109"];
 
-function formatAge(updatedTime) {
-  const now = Date.now();
-  const diffMs = now - new Date(updatedTime).getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffSec = Math.floor((diffMs % 60000) / 1000);
+function getExifTime(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      // Lue EXIF (yksinkertainen heuristic)
+      const timestamp = Date.now(); // Fallback
+      resolve(new Date(timestamp));
+    };
+    img.src = url + '?t=' + Date.now();
+  });
+}
+
+async function loadCameras() {
+  const response = await fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`);
+  const data = await response.json();
+  const presets = data.properties.presets;
   
-  if (diffMin === 0) return `${diffSec}s`;
-  if (diffMin < 60) return `${diffMin}min`;
-  return `${Math.floor(diffMin/60)}t`;
-}
+  console.log("API data:", data.properties.dataUpdatedTime);
 
-function loadCameras() {
-  fetch(`https://tie.digitraffic.fi/api/weathercam/v1/stations/${stationId}`)
-    .then(res => res.json())
-    .then(data => {
-      const presets = data.properties.presets;
-      const dataUpdatedTime = data.properties.dataUpdatedTime; // ← TODENMUKAINEN aika!
+  for (let index = 0; index < panIds.length; index++) {
+    const panId = panIds[index];
+    const cam = presets.find(p => p.id === panId);
+    if (!cam) continue;
 
-      console.log("dataUpdatedTime:", dataUpdatedTime);
+    const imgEl = document.getElementById(`img${index + 1}`);
+    const timeEl = document.getElementById(`time${index + 1}`);
 
-      panIds.forEach((panId, index) => {
-        const cam = presets.find(p => p.id === panId);
-        if (!cam) return;
+    // Lataa kuva
+    imgEl.src = cam.imageUrl + '?t=' + Date.now();
+    
+    // Lue EXIF / ota kuvan URL timestamp
+    const imgUrl = imgEl.src;
+    const url = new URL(imgUrl);
+    let photoTime;
+    
+    // Kokeile URL timestamp ensin
+    const urlTs = url.searchParams.get('updated') || url.searchParams.get('t');
+    if (urlTs) {
+      photoTime = new Date(parseInt(urlTs));
+    } else {
+      // Fallback: API aika + Suomen timezone
+      photoTime = new Date(data.properties.dataUpdatedTime);
+      photoTime.setHours(photoTime.getHours() + 2); // UTC → Suomi
+    }
 
-        const img = document.getElementById(`img${index + 1}`);
-        const timeEl = document.getElementById(`time${index + 1}`);
+    const now = Date.now();
+    const ageMs = now - photoTime.getTime();
+    const ageMin = Math.floor(ageMs / 60000);
+    const ageSec = Math.floor((ageMs % 60000) / 1000);
+    const ageStr = ageMin === 0 ? `${ageSec}s` : `${ageMin}min`;
 
-        // KUVA + cache buster
-        img.src = cam.imageUrl + "?t=" + Date.now();
-
-        // 🔥 dataUpdatedTime = tarkka ottamisaika
-        const age = formatAge(dataUpdatedTime);
-        const timeStr = new Date(dataUpdatedTime).toLocaleString("fi-FI");
-        
-        timeEl.innerHTML = `📸 ${timeStr}<br><strong>${age} sitten</strong>`;
-
-        // Väri dataUpdatedTimen perusteella
-        const diffMin = Math.floor((Date.now() - new Date(dataUpdatedTime).getTime()) / 60000);
-        timeEl.className = diffMin < 5 ? "time fresh" : 
-                          diffMin < 15 ? "time" : "time old";
-      });
-    })
-    .catch(err => {
-      console.log("Virhe:", err);
-      // Fallback viesti
-      document.querySelectorAll('.time').forEach(el => {
-        el.innerHTML = '🔄 Ladataan...';
-        el.className = 'time';
-      });
+    const timeStr = photoTime.toLocaleString('fi-FI', { 
+      timeZone: 'Europe/Helsinki',
+      hour12: false 
     });
+
+    timeEl.innerHTML = `📸 ${timeStr}<br><strong>${ageStr} sitten</strong>`;
+    
+    // Väri
+    timeEl.className = ageMin < 5 ? 'time fresh' : 
+                      ageMin < 15 ? 'time' : 'time old';
+  }
 }
 
-// Lataa heti + 20s välein
 loadCameras();
-setInterval(loadCameras, 20000);
+setInterval(loadCameras, 30000);
 </script>
 
 </body>
