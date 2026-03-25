@@ -144,15 +144,7 @@ timeEl.innerHTML = `<strong>${age} vanha</strong><br>
 loadCameras();
 setInterval(loadCameras, 30000);
 
-  setInterval(() => {
-  document.querySelectorAll('[id^="time"]').forEach(el => {
-    const text = el.innerText;
-    if (!text.includes("vanha")) return;
 
-    // Ei täydellinen, mutta päivittää näkyvän ajan
-    loadCameras();
-  });
-}, 1000);
 </script>
 
 </body>
