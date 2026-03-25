@@ -114,17 +114,19 @@ function loadCameras() {
         img.src = cam.imageUrl + "?t=" + Date.now();
         img.alt = cam.name || `Kamera ${index + 1}`;
 
-        // 🔥 SUHTEELLINEN AIKA API:n dataUpdatedTime:sta
-        const age = formatRelativeTime(lastApiUpdate);
-        timeEl.innerHTML = `<strong>${age} vanha</strong><br>
-                           (${new Date(lastApiUpdate).toLocaleString('fi-FI', {
-                             timeZone: 'Europe/Helsinki',
-                             hour: '2-digit',
-                             minute: '2-digit'
-                           })})`; 
+        // 🔥 Käytetään kameran omaa aikaa
+const camTime = cam.measuredTime || cam.dataUpdatedTime || lastApiUpdate;
+
+const age = formatRelativeTime(camTime);
+timeEl.innerHTML = `<strong>${age} vanha</strong><br>
+                   (${new Date(camTime).toLocaleString('fi-FI', {
+                     timeZone: 'Europe/Helsinki',
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   })})`;
 
         // Väri
-        const diffMin = Math.floor((Date.now() - new Date(lastApiUpdate)) / 60000);
+        const diffMin = Math.floor((Date.now() - new Date(camTime)) / 60000);
         timeEl.className = diffMin < 10 ? "time fresh" : 
                           diffMin < 30 ? "time" : "time old";
       });
@@ -141,6 +143,16 @@ function loadCameras() {
 // Lataa heti + 30s välein
 loadCameras();
 setInterval(loadCameras, 30000);
+
+  setInterval(() => {
+  document.querySelectorAll('[id^="time"]').forEach(el => {
+    const text = el.innerText;
+    if (!text.includes("vanha")) return;
+
+    // Ei täydellinen, mutta päivittää näkyvän ajan
+    loadCameras();
+  });
+}, 1000);
 </script>
 
 </body>
